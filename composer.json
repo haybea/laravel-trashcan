@@ -4,7 +4,7 @@
     "keywords": ["laravel", "soft-deletes", "trash", "trashcan", "admin", "dashboard"],
     "license": "MIT",
     "type": "library",
-    "authors": [{"name": "Haybea", "email": "your@email.com"}],
+    "authors": [{"name": "Abraham Omodara (Haybea)", "email": "omodara.abraham@gmail.com"}],
     "homepage": "https://github.com/haybea/laravel-trashcan",
     "require": {
         "php": "^8.1",

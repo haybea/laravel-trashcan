@@ -1,7 +1,15 @@
-ndor/
+vendor/
 node_modules/
 npm-debug.log
 yarn-error.log
+
+composer.lock
+.phpunit.result.cache
+.idea/
+.idea/*
+.vscode/
+*.log
+.DS_Store
 
 # Laravel 4 specific
 bootstrap/compiled.php
