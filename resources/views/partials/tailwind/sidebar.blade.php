@@ -1,4 +1,4 @@
-﻿<aside class="fixed inset-y-0 left-0 w-72 sidebar-gradient flex flex-col">
+<aside class="fixed inset-y-0 left-0 w-72 sidebar-gradient flex flex-col">
     <div class="flex items-center justify-between p-6">
         <div class="flex items-center gap-3"><i class="ri-delete-bin-line text-3xl text-white"></i><span class="text-xl font-bold text-white">Trashcan</span></div>
         @if(config('trashcan.dark_mode') === 'toggle')<button onclick="toggleTheme()" class="p-2 rounded-lg text-white hover:bg-white/10"><i id="themeIcon" class="ri-sun-fill text-xl"></i></button>@endif

@@ -1,4 +1,4 @@
-﻿# Laravel Trashcan
+# Laravel Trashcan
 
 A beautiful trash management dashboard for Laravel soft deletes.
 

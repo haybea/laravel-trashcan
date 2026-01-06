@@ -1,4 +1,4 @@
-﻿@extends('trashcan::layouts.app-' . config('trashcan.css_framework', 'bootstrap'))
+@extends('trashcan::layouts.app-' . config('trashcan.css_framework', 'bootstrap'))
 @section('content')
 @include('trashcan::partials.' . config('trashcan.css_framework') . '.sidebar')
 @php $bs = config('trashcan.css_framework') === 'bootstrap'; @endphp

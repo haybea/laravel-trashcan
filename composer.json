@@ -1,4 +1,4 @@
-﻿{
+{
     "name": "haybea/laravel-trashcan",
     "description": "A beautiful trash management dashboard for Laravel soft deletes",
     "keywords": ["laravel", "soft-deletes", "trash", "trashcan", "admin", "dashboard"],
