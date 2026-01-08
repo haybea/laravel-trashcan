@@ -1,4 +1,4 @@
-﻿<div class="sidebar p-3 d-flex flex-column">
+<div class="sidebar p-3 d-flex flex-column">
     <div class="d-flex align-items-center justify-content-between mb-4 px-2 pt-2">
         <div class="d-flex align-items-center"><i class="bi bi-trash3 text-white me-2" style="font-size:1.75rem"></i><span class="text-white fw-bold fs-4">Trashcan</span></div>
         @if(config('trashcan.dark_mode') === 'toggle')<div class="theme-toggle text-white" onclick="toggleTheme()"><i id="themeIcon" class="bi bi-sun-fill"></i></div>@endif
