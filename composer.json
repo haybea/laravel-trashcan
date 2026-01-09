@@ -1,6 +1,6 @@
 {
     "name": "haybea/laravel-trashcan",
-    "description": "A beautiful trash management dashboard for Laravel soft deletes",
+    "description": "An observability & recovery console for Laravel soft-deleted records",
     "keywords": ["laravel", "soft-deletes", "trash", "trashcan", "admin", "dashboard"],
     "license": "MIT",
     "type": "library",

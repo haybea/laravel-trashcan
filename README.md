@@ -6,14 +6,8 @@ A beautiful trash management dashboard for Laravel soft deletes.
 
 ```bash
 composer require haybea/laravel-trashcan
-```
 
-## Publish Config & Migrations
-
-```bash
-php artisan vendor:publish --tag=trashcan-config
-php artisan vendor:publish --tag=trashcan-migrations
-php artisan migrate
+php artisan trashcan:install
 ```
 
 ## Usage
