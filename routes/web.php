@@ -3,10 +3,16 @@
 use Illuminate\Support\Facades\Route;
 use Haybea\Trashcan\Http\Controllers\TrashcanController;
 
+// Dashboard
 Route::get('/', [TrashcanController::class, 'index'])->name('trashcan.index');
+
+// Statistics
 Route::get('/statistics', [TrashcanController::class, 'statistics'])->name('trashcan.statistics');
+
+// Activity Log
 Route::get('/activity', [TrashcanController::class, 'activity'])->name('trashcan.activity');
 
+// Model routes
 Route::prefix('model/{model}')->group(function () {
     Route::get('/', [TrashcanController::class, 'show'])->name('trashcan.show');
     Route::post('/{id}/restore', [TrashcanController::class, 'restore'])->name('trashcan.restore');

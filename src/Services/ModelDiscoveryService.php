@@ -12,42 +12,98 @@ class ModelDiscoveryService
     public function getModels(): Collection
     {
         $only = config('trashcan.only', []);
+
         if (!empty($only)) {
-            return collect($only)->filter(fn ($m) => $this->usesSoftDeletes($m))->filter(fn ($m) => !$this->isExcluded($m))->mapWithKeys(fn ($m) => [$m => $this->getModelInfo($m)]);
+            return collect($only)
+                ->filter(fn ($model) => $this->usesSoftDeletes($model))
+                ->filter(fn ($model) => !$this->isExcluded($model))
+                ->mapWithKeys(fn ($model) => [$model => $this->getModelInfo($model)]);
         }
+
         return $this->discoverModels();
     }
 
     protected function discoverModels(): Collection
     {
-        $path = app_path(config('trashcan.models_path', 'Models'));
-        if (!File::isDirectory($path)) return collect();
+        $modelsPath = app_path(config('trashcan.models_path', 'Models'));
 
-        return collect(File::allFiles($path))
-            ->map(fn ($f) => 'App\\' . config('trashcan.models_path', 'Models') . '\\' . str_replace(['/', '.php'], ['\\', ''], $f->getRelativePathname()))
-            ->filter(fn ($c) => class_exists($c))->filter(fn ($c) => $this->usesSoftDeletes($c))->filter(fn ($c) => !$this->isExcluded($c))
-            ->mapWithKeys(fn ($m) => [$m => $this->getModelInfo($m)]);
+        if (!File::isDirectory($modelsPath)) {
+            return collect();
+        }
+
+        return collect(File::allFiles($modelsPath))
+            ->map(function ($file) {
+                $relativePath = str_replace(
+                    ['/', '.php'],
+                    ['\\', ''],
+                    $file->getRelativePathname()
+                );
+                return 'App\\' . config('trashcan.models_path', 'Models') . '\\' . $relativePath;
+            })
+            ->filter(fn ($class) => class_exists($class))
+            ->filter(fn ($class) => $this->usesSoftDeletes($class))
+            ->filter(fn ($class) => !$this->isExcluded($class))
+            ->mapWithKeys(fn ($model) => [$model => $this->getModelInfo($model)]);
     }
 
-    protected function usesSoftDeletes(string $class): bool { return class_exists($class) && in_array(SoftDeletes::class, class_uses_recursive($class)); }
-    protected function isExcluded(string $class): bool { return in_array($class, config('trashcan.exclude', [])); }
+    protected function usesSoftDeletes(string $class): bool
+    {
+        if (!class_exists($class)) {
+            return false;
+        }
+
+        return in_array(SoftDeletes::class, class_uses_recursive($class));
+    }
+
+    protected function isExcluded(string $class): bool
+    {
+        return in_array($class, config('trashcan.exclude', []));
+    }
 
     protected function getModelInfo(string $class): array
     {
+        $reflection = new ReflectionClass($class);
         $instance = new $class;
+
         return [
-            'class' => $class, 'name' => class_basename($class), 'table' => $instance->getTable(),
-            'trashed_count' => $class::onlyTrashed()->count(), 'columns' => $this->getDisplayColumns($class, $instance),
+            'class' => $class,
+            'name' => class_basename($class),
+            'table' => $instance->getTable(),
+            'trashed_count' => $class::onlyTrashed()->count(),
+            'columns' => $this->getDisplayColumns($class, $instance),
         ];
     }
 
     protected function getDisplayColumns(string $class, $instance): array
     {
-        if ($configured = config("trashcan.columns.{$class}")) return $configured;
-        $cols = ['id'];
-        $tableCols = $instance->getConnection()->getSchemaBuilder()->getColumnListing($instance->getTable());
-        foreach (['name', 'title', 'label', 'subject', 'email', 'slug'] as $c) { if (in_array($c, $tableCols)) { $cols[] = $c; break; } }
-        $cols[] = 'deleted_at';
-        return $cols;
+        $configured = config("trashcan.columns.{$class}");
+
+        if ($configured) {
+            return $configured;
+        }
+
+        $columns = ['id'];
+
+        $schema = $instance->getConnection()->getSchemaBuilder();
+        $tableColumns = $schema->getColumnListing($instance->getTable());
+
+        $displayColumns = ['name', 'title', 'label', 'subject', 'email', 'slug'];
+        foreach ($displayColumns as $col) {
+            if (in_array($col, $tableColumns)) {
+                $columns[] = $col;
+                break;
+            }
+        }
+
+        $columns[] = 'deleted_at';
+
+        return $columns;
+    }
+
+    public function getTrashedItems(string $modelClass, int $perPage = 15)
+    {
+        return $modelClass::onlyTrashed()
+            ->latest('deleted_at')
+            ->paginate($perPage);
     }
 }

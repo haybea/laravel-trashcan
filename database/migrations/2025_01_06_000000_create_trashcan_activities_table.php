@@ -20,11 +20,15 @@ return new class extends Migration
             $table->ipAddress('ip_address')->nullable();
             $table->string('user_agent')->nullable();
             $table->timestamps();
+
             $table->index(['model_class', 'created_at']);
             $table->index(['user_id', 'created_at']);
             $table->index('action');
         });
     }
 
-    public function down(): void { Schema::dropIfExists('trashcan_activities'); }
+    public function down(): void
+    {
+        Schema::dropIfExists('trashcan_activities');
+    }
 };
