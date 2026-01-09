@@ -39,7 +39,7 @@
 
     <nav class="nav flex-column flex-grow-1">
         @forelse($models as $class => $info)
-            @php $encoded = \Haybea\Trashcan\Http\Controllers\TrashController::encodeModelClass($class); @endphp
+            @php $encoded = \Haybea\Trashcan\Http\Controllers\TrashcanController::encodeModelClass($class); @endphp
             <a href="{{ route('trashcan.show', $encoded) }}"
                class="nav-link d-flex justify-content-between align-items-center {{ (isset($modelClass) && $modelClass === $class) ? 'active' : '' }}">
                 <span><i class="bi bi-folder2 me-2"></i>{{ $info['name'] }}</span>

@@ -40,7 +40,7 @@
 
     <nav class="px-3 space-y-1 flex-1 overflow-y-auto">
         @forelse($models as $class => $info)
-            @php $encoded = \Haybea\Trashcan\Http\Controllers\TrashController::encodeModelClass($class); @endphp
+            @php $encoded = \Haybea\Trashcan\Http\Controllers\TrashcanController::encodeModelClass($class); @endphp
             <a href="{{ route('trashcan.show', $encoded) }}"
                class="flex items-center justify-between px-4 py-2.5 rounded-lg transition-colors
                       {{ (isset($modelClass) && $modelClass === $class)
