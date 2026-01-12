@@ -34,11 +34,11 @@
                         @endif
 
                         @if($items->count() > 0)
-                            <form action="{{ route('trashcan.bulk-restore', $encoded) }}" method="POST" class="d-inline">
+                            <form action="{{ route('trashcan.bulk-restore', $encoded) }}" method="POST" class="d-inline" id="bulkRestoreForm">
                                 @csrf
                                 <input type="hidden" name="ids" id="restoreIds">
-                                <button type="submit" class="btn btn-restore btn-sm bulk-btn text-white" disabled
-                                        onclick="document.getElementById('restoreIds').value = JSON.stringify(getSelectedIds())">
+                                <button type="button" class="btn btn-restore btn-sm bulk-btn text-white" disabled
+                                        onclick="document.getElementById('restoreIds').value = JSON.stringify(getSelectedIds()); showConfirmModal('Restore Selected Items', 'Are you sure you want to restore the selected items?', function() { document.getElementById('bulkRestoreForm').submit(); });">
                                     <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
                                 </button>
                             </form>
@@ -129,9 +129,10 @@
                                             </td>
                                         @endforeach
                                         <td class="text-end">
-                                            <form action="{{ route('trashcan.restore', [$encoded, $item->id]) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('trashcan.restore', [$encoded, $item->id]) }}" method="POST" class="d-inline" id="restoreForm{{ $item->id }}">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-restore text-white" title="Restore">
+                                                <button type="button" class="btn btn-sm btn-restore text-white" title="Restore"
+                                                        onclick="showConfirmModal('Restore Item', 'Are you sure you want to restore this item?', function() { document.getElementById('restoreForm{{ $item->id }}').submit(); })">
                                                     <i class="bi bi-arrow-counterclockwise"></i>
                                                 </button>
                                             </form>
@@ -207,11 +208,11 @@
                         @endif
 
                         @if($items->count() > 0)
-                            <form action="{{ route('trashcan.bulk-restore', $encoded) }}" method="POST" class="inline">
+                            <form action="{{ route('trashcan.bulk-restore', $encoded) }}" method="POST" class="inline" id="bulkRestoreForm">
                                 @csrf
                                 <input type="hidden" name="ids" id="restoreIds">
-                                <button type="submit" class="bulk-btn px-4 py-2 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        disabled onclick="document.getElementById('restoreIds').value = JSON.stringify(getSelectedIds())">
+                                <button type="button" class="bulk-btn px-4 py-2 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled onclick="document.getElementById('restoreIds').value = JSON.stringify(getSelectedIds()); showConfirmModal('Restore Selected Items', 'Are you sure you want to restore the selected items?', function() { document.getElementById('bulkRestoreForm').submit(); })">
                                     <i class="ri-arrow-go-back-line mr-1"></i>Restore
                                 </button>
                             </form>
@@ -293,9 +294,12 @@
                                         </td>
                                     @endforeach
                                     <td class="p-4 text-right">
-                                        <form action="{{ route('trashcan.restore', [$encoded, $item->id]) }}" method="POST" class="inline">
+                                        <form action="{{ route('trashcan.restore', [$encoded, $item->id]) }}" method="POST" class="inline" id="restoreForm{{ $item->id }}">
                                             @csrf
-                                            <button type="submit" class="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"><i class="ri-arrow-go-back-line"></i></button>
+                                            <button type="button" class="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"
+                                                    onclick="showConfirmModal('Restore Item', 'Are you sure you want to restore this item?', function() { document.getElementById('restoreForm{{ $item->id }}').submit(); })">
+                                                <i class="ri-arrow-go-back-line"></i>
+                                            </button>
                                         </form>
                                         <form action="{{ route('trashcan.force-delete', [$encoded, $item->id]) }}" method="POST" class="inline" id="deleteForm{{ $item->id }}">
                                             @csrf
