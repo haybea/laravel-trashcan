@@ -15,6 +15,7 @@ Route::get('/activity', [TrashcanController::class, 'activity'])->name('trashcan
 // Model routes
 Route::prefix('model/{model}')->group(function () {
     Route::get('/', [TrashcanController::class, 'show'])->name('trashcan.show');
+    Route::get('/affected-children', [TrashcanController::class, 'getAffectedChildren'])->name('trashcan.affected-children');
     Route::post('/{id}/restore', [TrashcanController::class, 'restore'])->name('trashcan.restore');
     Route::delete('/{id}', [TrashcanController::class, 'forceDelete'])->name('trashcan.force-delete');
     Route::post('/bulk-restore', [TrashcanController::class, 'bulkRestore'])->name('trashcan.bulk-restore');

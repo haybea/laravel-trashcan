@@ -38,7 +38,7 @@
                                 @csrf
                                 <input type="hidden" name="ids" id="restoreIds">
                                 <button type="button" class="btn btn-restore btn-sm bulk-btn text-white" disabled
-                                        onclick="document.getElementById('restoreIds').value = JSON.stringify(getSelectedIds()); showConfirmModal('Restore Selected Items', 'Are you sure you want to restore the selected items?', function() { document.getElementById('bulkRestoreForm').submit(); });">
+                                        onclick="const ids = getSelectedIds(); document.getElementById('restoreIds').value = JSON.stringify(ids); showConfirmModal('Restore Selected Items', 'Are you sure you want to restore the selected items?', function() { document.getElementById('bulkRestoreForm').submit(); }, null, null, ids);">
                                     <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
                                 </button>
                             </form>
@@ -112,6 +112,7 @@
                                             </a>
                                         </th>
                                     @endforeach
+                                    <th width="120">Children</th>
                                     <th width="150" class="text-end">Actions</th>
                                 </tr>
                                 </thead>
@@ -128,11 +129,24 @@
                                                 @endif
                                             </td>
                                         @endforeach
+                                        <td>
+                                            @if(isset($orphanedChildren[$item->id]) && count($orphanedChildren[$item->id]) > 0)
+                                                @php
+                                                    $totalChildren = array_sum(array_column($orphanedChildren[$item->id], 'count'));
+                                                    $childrenList = collect($orphanedChildren[$item->id])->map(fn($c) => $c['model'] . ' (' . $c['count'] . ')')->join(', ');
+                                                @endphp
+                                                <span class="badge bg-info" title="{{ $childrenList }}" data-bs-toggle="tooltip" data-bs-placement="top">
+                                                    <i class="bi bi-diagram-3"></i> {{ $totalChildren }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted small">—</span>
+                                            @endif
+                                        </td>
                                         <td class="text-end">
                                             <form action="{{ route('trashcan.restore', [$encoded, $item->id]) }}" method="POST" class="d-inline" id="restoreForm{{ $item->id }}">
                                                 @csrf
                                                 <button type="button" class="btn btn-sm btn-restore text-white" title="Restore"
-                                                        onclick="showConfirmModal('Restore Item', 'Are you sure you want to restore this item?', function() { document.getElementById('restoreForm{{ $item->id }}').submit(); })">
+                                                        onclick="showConfirmModal('Restore Item', 'Are you sure you want to restore this item?', function() { document.getElementById('restoreForm{{ $item->id }}').submit(); }, null, null, [{{ $item->id }}])">
                                                     <i class="bi bi-arrow-counterclockwise"></i>
                                                 </button>
                                             </form>
@@ -169,14 +183,18 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow">
                     <div class="modal-body text-center p-4">
-                        <div class="mb-3">
-                            <i class="bi bi-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                        <div class="mb-3" id="confirmModalIcon">
+                            <i class="bi bi-exclamation-triangle text-danger" id="confirmModalIconElement" style="font-size: 3rem;"></i>
                         </div>
                         <h5 class="modal-title mb-2" id="confirmModalTitle">Confirm Action</h5>
                         <p class="text-muted mb-4" id="confirmModalMessage">Are you sure you want to proceed?</p>
+                        <div id="confirmModalChildren" class="mb-3 text-start" style="display: none;">
+                            <small class="text-muted d-block mb-2">The following child records will also be restored:</small>
+                            <ul id="confirmModalChildrenList" class="list-unstyled small mb-0"></ul>
+                        </div>
                         <div class="d-flex gap-2 justify-content-center">
                             <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-danger px-4" id="confirmModalBtn">Delete</button>
+                            <button type="button" class="btn px-4" id="confirmModalBtn">Confirm</button>
                         </div>
                     </div>
                 </div>
@@ -212,7 +230,7 @@
                                 @csrf
                                 <input type="hidden" name="ids" id="restoreIds">
                                 <button type="button" class="bulk-btn px-4 py-2 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        disabled onclick="document.getElementById('restoreIds').value = JSON.stringify(getSelectedIds()); showConfirmModal('Restore Selected Items', 'Are you sure you want to restore the selected items?', function() { document.getElementById('bulkRestoreForm').submit(); })">
+                                        disabled onclick="const ids = getSelectedIds(); document.getElementById('restoreIds').value = JSON.stringify(ids); showConfirmModal('Restore Selected Items', 'Are you sure you want to restore the selected items?', function() { document.getElementById('bulkRestoreForm').submit(); }, null, null, ids);">
                                     <i class="ri-arrow-go-back-line mr-1"></i>Restore
                                 </button>
                             </form>
@@ -277,6 +295,7 @@
                                         </a>
                                     </th>
                                 @endforeach
+                                <th class="p-4 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Children</th>
                                 <th class="p-4 text-right text-sm font-medium text-gray-600 dark:text-gray-300 w-36">Actions</th>
                             </tr>
                             </thead>
@@ -293,11 +312,24 @@
                                             @endif
                                         </td>
                                     @endforeach
+                                    <td class="p-4">
+                                        @if(isset($orphanedChildren[$item->id]) && count($orphanedChildren[$item->id]) > 0)
+                                            @php
+                                                $totalChildren = array_sum(array_column($orphanedChildren[$item->id], 'count'));
+                                                $childrenList = collect($orphanedChildren[$item->id])->map(fn($c) => $c['model'] . ' (' . $c['count'] . ')')->join(', ');
+                                            @endphp
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" title="{{ $childrenList }}">
+                                                <i class="ri-node-tree mr-1"></i>{{ $totalChildren }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400 text-sm">—</span>
+                                        @endif
+                                    </td>
                                     <td class="p-4 text-right">
                                         <form action="{{ route('trashcan.restore', [$encoded, $item->id]) }}" method="POST" class="inline" id="restoreForm{{ $item->id }}">
                                             @csrf
                                             <button type="button" class="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"
-                                                    onclick="showConfirmModal('Restore Item', 'Are you sure you want to restore this item?', function() { document.getElementById('restoreForm{{ $item->id }}').submit(); })">
+                                                    onclick="showConfirmModal('Restore Item', 'Are you sure you want to restore this item?', function() { document.getElementById('restoreForm{{ $item->id }}').submit(); }, null, null, [{{ $item->id }}])">
                                                 <i class="ri-arrow-go-back-line"></i>
                                             </button>
                                         </form>
@@ -332,17 +364,21 @@
             <div class="fixed inset-0 flex items-center justify-center p-4">
                 <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full transform transition-all">
                     <div class="p-6 text-center">
-                        <div class="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
-                            <i class="ri-error-warning-line text-3xl text-red-500"></i>
+                        <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" id="confirmModalIcon">
+                            <i class="ri-error-warning-line text-3xl" id="confirmModalIconElement"></i>
                         </div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2" id="confirmModalTitle">Confirm Action</h3>
                         <p class="text-gray-500 dark:text-gray-400 mb-6" id="confirmModalMessage">Are you sure you want to proceed?</p>
+                        <div id="confirmModalChildren" class="mb-4 text-left hidden">
+                            <small class="text-gray-500 dark:text-gray-400 block mb-2">The following child records will also be restored:</small>
+                            <ul id="confirmModalChildrenList" class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1"></ul>
+                        </div>
                         <div class="flex gap-3 justify-center">
                             <button type="button" onclick="hideConfirmModal()" class="px-5 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
                                 Cancel
                             </button>
-                            <button type="button" id="confirmModalBtn" class="px-5 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                                Delete
+                            <button type="button" id="confirmModalBtn" class="px-5 py-2.5 text-white rounded-lg transition-colors">
+                                Confirm
                             </button>
                         </div>
                     </div>
@@ -357,10 +393,57 @@
         let confirmCallback = null;
         const isBootstrap = {{ $isBootstrap ? 'true' : 'false' }};
 
-        function showConfirmModal(title, message, callback) {
+        function showConfirmModal(title, message, callback, buttonText = null, buttonType = 'danger', itemIds = null) {
             confirmCallback = callback;
             document.getElementById('confirmModalTitle').textContent = title;
             document.getElementById('confirmModalMessage').textContent = message;
+            
+            const btn = document.getElementById('confirmModalBtn');
+            const isRestore = title.toLowerCase().includes('restore');
+            btn.textContent = buttonText || (isRestore ? 'Restore' : 'Delete');
+            
+            // Hide affected children section initially
+            const childrenSection = document.getElementById('confirmModalChildren');
+            const childrenList = document.getElementById('confirmModalChildrenList');
+            if (isBootstrap) {
+                childrenSection.style.display = 'none';
+            } else {
+                childrenSection.classList.add('hidden');
+            }
+            childrenList.innerHTML = '';
+            
+            // Fetch affected children for restore actions
+            if (isRestore && itemIds && itemIds.length > 0) {
+                fetchAffectedChildren(itemIds);
+            }
+            
+            // Update button styling and icon based on action type
+            if (isBootstrap) {
+                btn.className = 'btn px-4';
+                const iconElement = document.getElementById('confirmModalIconElement');
+                if (isRestore) {
+                    btn.classList.add('btn-success');
+                    iconElement.className = 'bi bi-check-circle text-success';
+                } else {
+                    btn.classList.add('btn-danger');
+                    iconElement.className = 'bi bi-exclamation-triangle text-danger';
+                }
+                iconElement.style.fontSize = '3rem';
+            } else {
+                btn.className = 'px-5 py-2.5 text-white rounded-lg transition-colors';
+                const iconContainer = document.getElementById('confirmModalIcon');
+                const iconElement = document.getElementById('confirmModalIconElement');
+                
+                if (isRestore) {
+                    btn.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+                    iconContainer.className = 'mx-auto w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4';
+                    iconElement.className = 'ri-checkbox-circle-line text-3xl text-emerald-500';
+                } else {
+                    btn.classList.add('bg-red-500', 'hover:bg-red-600');
+                    iconContainer.className = 'mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4';
+                    iconElement.className = 'ri-error-warning-line text-3xl text-red-500';
+                }
+            }
 
             if (isBootstrap) {
                 const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
@@ -371,6 +454,40 @@
                 modal.classList.add('flex');
                 document.body.style.overflow = 'hidden';
             }
+        }
+        
+        function fetchAffectedChildren(itemIds) {
+            const url = '{{ route("trashcan.affected-children", $encoded) }}?ids=' + encodeURIComponent(JSON.stringify(itemIds));
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.affected_children && data.affected_children.length > 0) {
+                    const childrenList = document.getElementById('confirmModalChildrenList');
+                    const childrenSection = document.getElementById('confirmModalChildren');
+                    
+                    data.affected_children.forEach(child => {
+                        const li = document.createElement('li');
+                        li.textContent = `${child.model} (${child.count} item${child.count !== 1 ? 's' : ''})`;
+                        childrenList.appendChild(li);
+                    });
+                    
+                    if (isBootstrap) {
+                        childrenSection.style.display = 'block';
+                    } else {
+                        childrenSection.classList.remove('hidden');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching affected children:', error);
+            });
         }
 
         function hideConfirmModal() {
@@ -399,5 +516,13 @@
                 hideConfirmModal();
             }
         });
+
+        // Initialize Bootstrap tooltips
+        if (isBootstrap && typeof bootstrap !== 'undefined') {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
     </script>
 @endpush

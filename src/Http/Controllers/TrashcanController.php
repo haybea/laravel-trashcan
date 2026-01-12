@@ -63,7 +63,10 @@ class TrashcanController extends Controller
         $items = $query->paginate(config('trashcan.per_page', 15))->withQueryString();
         $encoded = base64_encode($modelClass);
 
-        return view('trashcan::model', compact('models', 'activeModel', 'items', 'modelClass', 'encoded'));
+        // Get orphaned children for each item
+        $orphanedChildren = $this->getOrphanedChildrenForItems($modelClass, $items->items());
+
+        return view('trashcan::model', compact('models', 'activeModel', 'items', 'modelClass', 'encoded', 'orphanedChildren'));
     }
 
     public function restore(Request $request, string $model, string $id)
@@ -108,7 +111,17 @@ class TrashcanController extends Controller
         $this->authorizeModel($modelClass, 'restore');
 
         $ids = $this->parseIds($request->input('ids'));
-        $modelClass::onlyTrashed()->whereIn('id', $ids)->get()->each->restore();
+        $items = $modelClass::onlyTrashed()->whereIn('id', $ids)->get();
+        
+        foreach ($items as $item) {
+            $item->restore();
+            
+            foreach (config("trashcan.restore_with_relations.{$modelClass}", []) as $rel) {
+                if (method_exists($item, $rel)) {
+                    $item->{$rel}()->onlyTrashed()->restore();
+                }
+            }
+        }
 
         $this->logger->logBulkRestored($modelClass, $ids);
         event(new BulkRestored($modelClass, $ids));
@@ -182,6 +195,23 @@ class TrashcanController extends Controller
         return view('trashcan::statistics', compact('models', 'stats'));
     }
 
+    public function getAffectedChildren(Request $request, string $model)
+    {
+        $modelClass = base64_decode($model);
+        $this->validateModel($modelClass);
+        $this->authorizeModel($modelClass, 'view');
+
+        $ids = $this->parseIds($request->input('ids', $request->input('id')));
+        
+        if (empty($ids)) {
+            return response()->json(['affected_children' => []]);
+        }
+
+        $affectedChildren = $this->getAffectedChildRecords($modelClass, $ids);
+
+        return response()->json(['affected_children' => $affectedChildren]);
+    }
+
     protected function authorizeModel(string $modelClass, string $action): void
     {
         $perms = config("trashcan.model_permissions.{$modelClass}");
@@ -208,5 +238,132 @@ class TrashcanController extends Controller
     public static function encodeModelClass(string $class): string
     {
         return base64_encode($class);
+    }
+
+    protected function getAffectedChildRecords(string $modelClass, array $ids): array
+    {
+        $affectedChildren = [];
+        $relations = config("trashcan.restore_with_relations.{$modelClass}", []);
+
+        if (empty($relations)) {
+            return [];
+        }
+
+        $items = $modelClass::onlyTrashed()->whereIn('id', $ids)->get();
+
+        foreach ($items as $item) {
+            // Temporarily restore to access relations
+            $wasTrashed = $item->trashed();
+            if ($wasTrashed) {
+                $item->restore();
+            }
+
+            foreach ($relations as $relationName) {
+                if (!method_exists($item, $relationName)) {
+                    continue;
+                }
+
+                try {
+                    $relation = $item->{$relationName}();
+                    $relatedModel = $relation->getRelated();
+                    
+                    // Check if the related model uses SoftDeletes
+                    if (!in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($relatedModel))) {
+                        continue;
+                    }
+
+                    $trashedCount = $relation->onlyTrashed()->count();
+                    
+                    if ($trashedCount > 0) {
+                        $modelName = class_basename($relatedModel);
+                        $key = $modelName . ':' . $relationName;
+                        
+                        if (!isset($affectedChildren[$key])) {
+                            $affectedChildren[$key] = [
+                                'model' => $modelName,
+                                'relation' => $relationName,
+                                'count' => 0,
+                            ];
+                        }
+                        
+                        $affectedChildren[$key]['count'] += $trashedCount;
+                    }
+                } catch (\Exception $e) {
+                    // Skip relations that can't be accessed
+                    continue;
+                }
+            }
+
+            // Re-trash if it was trashed
+            if ($wasTrashed) {
+                $item->delete();
+            }
+        }
+
+        return array_values($affectedChildren);
+    }
+
+    protected function getOrphanedChildrenForItems(string $modelClass, array $items): array
+    {
+        $orphanedChildren = [];
+        $relations = config("trashcan.restore_with_relations.{$modelClass}", []);
+
+        if (empty($relations) || empty($items)) {
+            return [];
+        }
+
+        foreach ($items as $item) {
+            $itemId = $item->id;
+            $orphanedChildren[$itemId] = [];
+
+            // Create a fresh instance to avoid modifying the original
+            $freshItem = $modelClass::withTrashed()->find($itemId);
+            
+            if (!$freshItem) {
+                continue;
+            }
+
+            // Temporarily restore to access relations
+            $wasTrashed = $freshItem->trashed();
+            if ($wasTrashed) {
+                $freshItem->restore();
+            }
+
+            foreach ($relations as $relationName) {
+                if (!method_exists($freshItem, $relationName)) {
+                    continue;
+                }
+
+                try {
+                    $relation = $freshItem->{$relationName}();
+                    $relatedModel = $relation->getRelated();
+                    
+                    // Check if the related model uses SoftDeletes
+                    if (!in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($relatedModel))) {
+                        continue;
+                    }
+
+                    $trashedCount = $relation->onlyTrashed()->count();
+                    
+                    if ($trashedCount > 0) {
+                        $orphanedChildren[$itemId][] = [
+                            'model' => class_basename($relatedModel),
+                            'relation' => $relationName,
+                            'count' => $trashedCount,
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    // Skip relations that can't be accessed
+                    continue;
+                }
+            }
+
+            // Re-trash if it was trashed
+            if ($wasTrashed) {
+                $freshItem->delete();
+            }
+        }
+
+        return $orphanedChildren;
     }
 }
