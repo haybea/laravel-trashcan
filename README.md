@@ -2,7 +2,7 @@
 
 An observability & recovery console for Laravel soft-deleted records.
 
-Laravel Trashcan provides a beautiful, Telescope-inspired dashboard to manage your soft-deleted Eloquent records. Instead of digging through database tables or writing manual "Restore" logic, Trashcan gives you a central hub to visualize, restore, or permanently purge "trashed" data.
+Laravel Trashcan provides a beautiful dashboard/console to manage your soft-deleted Eloquent records. Instead of digging through database tables or writing manual "Restore" logic, Trashcan gives you a central hub to visualize, restore, or permanently purge "trashed" data.
 
 ## Features
 

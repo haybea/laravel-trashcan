@@ -64,9 +64,9 @@ class TrashcanController extends Controller
         $encoded = base64_encode($modelClass);
 
         // Get orphaned children for each item
-        $orphanedChildren = $this->getOrphanedChildrenForItems($modelClass, $items->items());
+//        $orphanedChildren = $this->getOrphanedChildrenForItems($modelClass, $items->items());
 
-        return view('trashcan::model', compact('models', 'activeModel', 'items', 'modelClass', 'encoded', 'orphanedChildren'));
+        return view('trashcan::model', compact('models', 'activeModel', 'items', 'modelClass', 'encoded'));
     }
 
     public function restore(Request $request, string $model, string $id)
@@ -243,7 +243,13 @@ class TrashcanController extends Controller
     protected function getAffectedChildRecords(string $modelClass, array $ids): array
     {
         $affectedChildren = [];
+        
+        // Get relations from config or auto-detect
         $relations = config("trashcan.restore_with_relations.{$modelClass}", []);
+        
+        if (empty($relations)) {
+            $relations = $this->autoDetectRelations($modelClass);
+        }
 
         if (empty($relations)) {
             return [];
@@ -303,67 +309,185 @@ class TrashcanController extends Controller
         return array_values($affectedChildren);
     }
 
-    protected function getOrphanedChildrenForItems(string $modelClass, array $items): array
+//    protected function getOrphanedChildrenForItems(string $modelClass, array $items): array
+//    {
+//        $orphanedChildren = [];
+//
+//        if (empty($items)) {
+//            return [];
+//        }
+//
+//        // Get relations from config or auto-detect
+//        $relations = config("trashcan.restore_with_relations.{$modelClass}", []);
+//
+//        if (empty($relations)) {
+//            $relations = $this->autoDetectRelations($modelClass);
+//        }
+//
+//        if (empty($relations)) {
+//            return [];
+//        }
+//
+//        $itemIds = collect($items)->pluck('id')->toArray();
+//        $instance = new $modelClass;
+//
+//        foreach ($items as $item) {
+//            $itemId = $item->id;
+//            $orphanedChildren[$itemId] = [];
+//
+//            // Create a fresh instance to access relations
+//            $freshItem = $modelClass::withTrashed()->find($itemId);
+//
+//            if (!$freshItem) {
+//                continue;
+//            }
+//
+//            // Temporarily restore to access relations
+//            $wasTrashed = $freshItem->trashed();
+//            if ($wasTrashed) {
+//                $freshItem->restore();
+//            }
+//
+//            foreach ($relations as $relationName) {
+//                if (!method_exists($freshItem, $relationName)) {
+//                    continue;
+//                }
+//
+//                try {
+//                    $relation = $freshItem->{$relationName}();
+//                    $relatedModel = $relation->getRelated();
+//
+//                    // Get the foreign key and local key based on relation type
+//                    [$foreignKey, $localKey] = $this->getRelationKeys($relation, $itemId);
+//
+//                    if (!$foreignKey || !$localKey) {
+//                        continue;
+//                    }
+//
+//                    // Find active (non-deleted) children of this deleted parent
+//                    // These are the orphaned children - they exist but their parent is deleted
+//                    $query = $relatedModel::where($foreignKey, $localKey);
+//
+//                    // If the related model uses SoftDeletes, only count non-deleted children
+//                    if (in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($relatedModel))) {
+//                        $query->whereNull('deleted_at');
+//                    }
+//
+//                    $activeChildrenCount = $query->count();
+//
+//                    if ($activeChildrenCount > 0) {
+//                        $orphanedChildren[$itemId][] = [
+//                            'model' => class_basename($relatedModel),
+//                            'relation' => $relationName,
+//                            'count' => $activeChildrenCount,
+//                        ];
+//                    }
+//                } catch (\Exception $e) {
+//                    // Skip relations that can't be accessed
+//                    continue;
+//                }
+//            }
+//
+//            // Re-trash if it was trashed
+//            if ($wasTrashed) {
+//                $freshItem->delete();
+//            }
+//        }
+//
+//        return $orphanedChildren;
+//    }
+
+    protected function autoDetectRelations(string $modelClass): array
     {
-        $orphanedChildren = [];
-        $relations = config("trashcan.restore_with_relations.{$modelClass}", []);
+        $relations = [];
+        $reflection = new \ReflectionClass($modelClass);
+        $instance = new $modelClass;
 
-        if (empty($relations) || empty($items)) {
-            return [];
-        }
-
-        foreach ($items as $item) {
-            $itemId = $item->id;
-            $orphanedChildren[$itemId] = [];
-
-            // Create a fresh instance to avoid modifying the original
-            $freshItem = $modelClass::withTrashed()->find($itemId);
-            
-            if (!$freshItem) {
+        foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+            // Skip non-relation methods
+            if ($method->isStatic() || $method->getNumberOfParameters() > 0) {
                 continue;
             }
 
-            // Temporarily restore to access relations
-            $wasTrashed = $freshItem->trashed();
-            if ($wasTrashed) {
-                $freshItem->restore();
+            $methodName = $method->getName();
+            
+            // Skip common non-relation methods
+            if (in_array($methodName, ['getTable', 'getConnection', 'getKeyName', 'getForeignKey'])) {
+                continue;
             }
 
-            foreach ($relations as $relationName) {
-                if (!method_exists($freshItem, $relationName)) {
+            try {
+                $returnType = $method->getReturnType();
+                
+                // Check if method returns a relation type
+                if ($returnType && (
+                    str_contains($returnType->getName(), 'Relation') ||
+                    str_contains($returnType->getName(), 'HasMany') ||
+                    str_contains($returnType->getName(), 'BelongsTo') ||
+                    str_contains($returnType->getName(), 'HasOne') ||
+                    str_contains($returnType->getName(), 'BelongsToMany') ||
+                    str_contains($returnType->getName(), 'MorphMany') ||
+                    str_contains($returnType->getName(), 'MorphToMany')
+                )) {
+                    $relations[] = $methodName;
                     continue;
                 }
 
-                try {
-                    $relation = $freshItem->{$relationName}();
-                    $relatedModel = $relation->getRelated();
-                    
-                    // Check if the related model uses SoftDeletes
-                    if (!in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($relatedModel))) {
-                        continue;
-                    }
-
-                    $trashedCount = $relation->onlyTrashed()->count();
-                    
-                    if ($trashedCount > 0) {
-                        $orphanedChildren[$itemId][] = [
-                            'model' => class_basename($relatedModel),
-                            'relation' => $relationName,
-                            'count' => $trashedCount,
-                        ];
-                    }
-                } catch (\Exception $e) {
-                    // Skip relations that can't be accessed
-                    continue;
+                // Try calling the method to see if it returns a relation
+                $result = $instance->{$methodName}();
+                
+                if ($result instanceof \Illuminate\Database\Eloquent\Relations\Relation) {
+                    $relations[] = $methodName;
                 }
-            }
-
-            // Re-trash if it was trashed
-            if ($wasTrashed) {
-                $freshItem->delete();
+            } catch (\Exception $e) {
+                // Skip methods that throw errors
+                continue;
             }
         }
 
-        return $orphanedChildren;
+        return $relations;
+    }
+
+    protected function getRelationKeys($relation, $parentId): array
+    {
+        // For HasMany/HasOne: foreign key is on child table, local key is parent's primary key
+        if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany ||
+            $relation instanceof \Illuminate\Database\Eloquent\Relations\HasOne) {
+            return [
+                $relation->getForeignKeyName(), // Foreign key on child table (e.g., 'post_id')
+                $parentId // Parent's ID value
+            ];
+        }
+        
+        // For BelongsTo: foreign key is on child table pointing to parent, but we query from child's perspective
+        // This is less common for orphaned children, but handle it anyway
+        if ($relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsTo) {
+            // The child has a foreign key pointing to parent
+            // To find orphaned children, we'd query children where their foreign key = parent id
+            // But BelongsTo is typically used from child to parent, not parent to children
+            // So we skip this for now
+            return [null, null];
+        }
+
+        // For BelongsToMany: uses pivot table, more complex
+        if ($relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
+            // This is complex and may not represent true parent-child relationship
+            // Skip for now
+            return [null, null];
+        }
+
+        // For other relation types, try to get foreign key
+        try {
+            if (method_exists($relation, 'getForeignKeyName')) {
+                return [
+                    $relation->getForeignKeyName(),
+                    $parentId
+                ];
+            }
+        } catch (\Exception $e) {
+            // Could not determine foreign key
+        }
+
+        return [null, null];
     }
 }

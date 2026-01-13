@@ -112,7 +112,7 @@
                                             </a>
                                         </th>
                                     @endforeach
-                                    <th width="120">Children</th>
+{{--                                    <th width="120">Children</th>--}}
                                     <th width="150" class="text-end">Actions</th>
                                 </tr>
                                 </thead>
@@ -129,19 +129,19 @@
                                                 @endif
                                             </td>
                                         @endforeach
-                                        <td>
-                                            @if(isset($orphanedChildren[$item->id]) && count($orphanedChildren[$item->id]) > 0)
-                                                @php
-                                                    $totalChildren = array_sum(array_column($orphanedChildren[$item->id], 'count'));
-                                                    $childrenList = collect($orphanedChildren[$item->id])->map(fn($c) => $c['model'] . ' (' . $c['count'] . ')')->join(', ');
-                                                @endphp
-                                                <span class="badge bg-info" title="{{ $childrenList }}" data-bs-toggle="tooltip" data-bs-placement="top">
-                                                    <i class="bi bi-diagram-3"></i> {{ $totalChildren }}
-                                                </span>
-                                            @else
-                                                <span class="text-muted small">—</span>
-                                            @endif
-                                        </td>
+{{--                                        <td>--}}
+{{--                                            @if(isset($orphanedChildren[$item->id]) && count($orphanedChildren[$item->id]) > 0)--}}
+{{--                                                @php--}}
+{{--                                                    $totalChildren = array_sum(array_column($orphanedChildren[$item->id], 'count'));--}}
+{{--                                                    $childrenList = collect($orphanedChildren[$item->id])->map(fn($c) => $c['model'] . ' (' . $c['count'] . ')')->join(', ');--}}
+{{--                                                @endphp--}}
+{{--                                                <span class="badge bg-info" title="{{ $childrenList }}" data-bs-toggle="tooltip" data-bs-placement="top">--}}
+{{--                                                    <i class="bi bi-diagram-3"></i> {{ $totalChildren }}--}}
+{{--                                                </span>--}}
+{{--                                            @else--}}
+{{--                                                <span class="text-muted small">—</span>--}}
+{{--                                            @endif--}}
+{{--                                        </td>--}}
                                         <td class="text-end">
                                             <form action="{{ route('trashcan.restore', [$encoded, $item->id]) }}" method="POST" class="d-inline" id="restoreForm{{ $item->id }}">
                                                 @csrf
@@ -295,7 +295,7 @@
                                         </a>
                                     </th>
                                 @endforeach
-                                <th class="p-4 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Children</th>
+{{--                                <th class="p-4 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Children</th>--}}
                                 <th class="p-4 text-right text-sm font-medium text-gray-600 dark:text-gray-300 w-36">Actions</th>
                             </tr>
                             </thead>
@@ -312,19 +312,19 @@
                                             @endif
                                         </td>
                                     @endforeach
-                                    <td class="p-4">
-                                        @if(isset($orphanedChildren[$item->id]) && count($orphanedChildren[$item->id]) > 0)
-                                            @php
-                                                $totalChildren = array_sum(array_column($orphanedChildren[$item->id], 'count'));
-                                                $childrenList = collect($orphanedChildren[$item->id])->map(fn($c) => $c['model'] . ' (' . $c['count'] . ')')->join(', ');
-                                            @endphp
-                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" title="{{ $childrenList }}">
-                                                <i class="ri-node-tree mr-1"></i>{{ $totalChildren }}
-                                            </span>
-                                        @else
-                                            <span class="text-gray-400 text-sm">—</span>
-                                        @endif
-                                    </td>
+{{--                                    <td class="p-4">--}}
+{{--                                        @if(isset($orphanedChildren[$item->id]) && count($orphanedChildren[$item->id]) > 0)--}}
+{{--                                            @php--}}
+{{--                                                $totalChildren = array_sum(array_column($orphanedChildren[$item->id], 'count'));--}}
+{{--                                                $childrenList = collect($orphanedChildren[$item->id])->map(fn($c) => $c['model'] . ' (' . $c['count'] . ')')->join(', ');--}}
+{{--                                            @endphp--}}
+{{--                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" title="{{ $childrenList }}">--}}
+{{--                                                <i class="ri-node-tree mr-1"></i>{{ $totalChildren }}--}}
+{{--                                            </span>--}}
+{{--                                        @else--}}
+{{--                                            <span class="text-gray-400 text-sm">—</span>--}}
+{{--                                        @endif--}}
+{{--                                    </td>--}}
                                     <td class="p-4 text-right">
                                         <form action="{{ route('trashcan.restore', [$encoded, $item->id]) }}" method="POST" class="inline" id="restoreForm{{ $item->id }}">
                                             @csrf
