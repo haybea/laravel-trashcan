@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use Haybea\Trashcan\Http\Controllers\TrashcanController;
+use Illuminate\Support\Facades\Route;
 
 // Dashboard
 Route::get('/', [TrashcanController::class, 'index'])->name('trashcan.index');

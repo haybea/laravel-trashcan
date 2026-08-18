@@ -7,6 +7,7 @@ use Illuminate\Contracts\Foundation\Application;
 class Trashcan
 {
     protected Application $app;
+
     protected static ?\Closure $authCallback = null;
 
     public function __construct(Application $app)

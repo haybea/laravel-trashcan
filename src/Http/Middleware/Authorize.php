@@ -3,11 +3,11 @@
 namespace Haybea\Trashcan\Http\Middleware;
 
 use Closure;
+use Haybea\Trashcan\Trashcan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
-use Haybea\Trashcan\Trashcan;
 
 class Authorize
 {

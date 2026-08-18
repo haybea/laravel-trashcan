@@ -27,10 +27,15 @@ class TrashcanActivity extends Model
     ];
 
     const ACTION_RESTORED = 'restored';
+
     const ACTION_FORCE_DELETED = 'force_deleted';
+
     const ACTION_BULK_RESTORED = 'bulk_restored';
+
     const ACTION_BULK_DELETED = 'bulk_deleted';
+
     const ACTION_EMPTIED = 'emptied';
+
     const ACTION_EXPORTED = 'exported';
 
     /**

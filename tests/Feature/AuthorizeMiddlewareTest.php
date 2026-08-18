@@ -2,8 +2,8 @@
 
 namespace Haybea\Trashcan\Tests\Feature;
 
-use Haybea\Trashcan\Trashcan;
 use Haybea\Trashcan\Tests\TestCase;
+use Haybea\Trashcan\Trashcan;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Gate;
 

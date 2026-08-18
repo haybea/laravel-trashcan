@@ -11,6 +11,7 @@ class Comment extends Model
     use SoftDeletes;
 
     protected $table = 'comments';
+
     protected $fillable = ['post_id', 'body'];
 
     public function post(): BelongsTo

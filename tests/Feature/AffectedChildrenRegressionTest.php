@@ -27,8 +27,12 @@ class AffectedChildrenRegressionTest extends TestCase
 
         $restoredFired = false;
         $deletedFired = false;
-        Post::restored(function () use (&$restoredFired) { $restoredFired = true; });
-        Post::deleted(function () use (&$deletedFired) { $deletedFired = true; });
+        Post::restored(function () use (&$restoredFired) {
+            $restoredFired = true;
+        });
+        Post::deleted(function () use (&$deletedFired) {
+            $deletedFired = true;
+        });
 
         $response = $this->getJson(route('trashcan.affected-children', [
             'model' => TrashcanController::encodeModelClass(Post::class),

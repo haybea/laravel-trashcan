@@ -10,6 +10,7 @@ use Haybea\Trashcan\Events\TrashEmptied;
 use Haybea\Trashcan\Http\Controllers\TrashcanController;
 use Haybea\Trashcan\Models\TrashcanActivity;
 use Haybea\Trashcan\Tests\Fixtures\Models\Comment;
+use Haybea\Trashcan\Tests\Fixtures\Models\PlainModel;
 use Haybea\Trashcan\Tests\Fixtures\Models\Post;
 use Haybea\Trashcan\Tests\TestCase;
 use Illuminate\Foundation\Auth\User;
@@ -68,7 +69,7 @@ class TrashcanControllerTest extends TestCase
 
     public function test_show_returns_404_for_unknown_model(): void
     {
-        $this->get(route('trashcan.show', $this->encoded(\Haybea\Trashcan\Tests\Fixtures\Models\PlainModel::class)))
+        $this->get(route('trashcan.show', $this->encoded(PlainModel::class)))
             ->assertNotFound();
     }
 

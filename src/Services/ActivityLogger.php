@@ -2,9 +2,9 @@
 
 namespace Haybea\Trashcan\Services;
 
+use Haybea\Trashcan\Models\TrashcanActivity;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Haybea\Trashcan\Models\TrashcanActivity;
 
 class ActivityLogger
 {
@@ -23,7 +23,7 @@ class ActivityLogger
      */
     protected function getUserName($user): ?string
     {
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -39,7 +39,7 @@ class ActivityLogger
         int $count = 1,
         ?array $metadata = null
     ): ?TrashcanActivity {
-        if (!config('trashcan.logging.enabled', true)) {
+        if (! config('trashcan.logging.enabled', true)) {
             return null;
         }
 

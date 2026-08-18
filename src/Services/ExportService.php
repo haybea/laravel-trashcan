@@ -2,10 +2,10 @@
 
 namespace Haybea\Trashcan\Services;
 
+use Haybea\Trashcan\Events\TrashExported;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Haybea\Trashcan\Events\TrashExported;
 
 class ExportService
 {
@@ -18,7 +18,7 @@ class ExportService
     {
         $models = $this->discoveryService->getModels();
 
-        if (!$models->has($modelClass)) {
+        if (! $models->has($modelClass)) {
             abort(404, 'Model not found');
         }
 
@@ -43,7 +43,7 @@ class ExportService
 
     protected function exportCsv(Collection $items, array $modelInfo): StreamedResponse
     {
-        $filename = strtolower($modelInfo['name']) . '_trashcan_' . date('Y-m-d_His') . '.csv';
+        $filename = strtolower($modelInfo['name']).'_trashcan_'.date('Y-m-d_His').'.csv';
         $columns = $this->getAllColumns($items->first());
 
         return Response::streamDownload(function () use ($items, $columns) {
@@ -66,7 +66,7 @@ class ExportService
 
     protected function exportJson(Collection $items, array $modelInfo): StreamedResponse
     {
-        $filename = strtolower($modelInfo['name']) . '_trashcan_' . date('Y-m-d_His') . '.json';
+        $filename = strtolower($modelInfo['name']).'_trashcan_'.date('Y-m-d_His').'.json';
 
         return Response::streamDownload(function () use ($items, $modelInfo) {
             echo json_encode([
@@ -80,7 +80,7 @@ class ExportService
 
     protected function getAllColumns($item): array
     {
-        if (!$item) {
+        if (! $item) {
             return ['id', 'deleted_at'];
         }
 

@@ -2,12 +2,15 @@
 
 namespace Haybea\Trashcan;
 
+use Haybea\Trashcan\Console\Commands\InstallCommand;
+use Haybea\Trashcan\Http\Middleware\Authorize;
+use Haybea\Trashcan\Services\ActivityLogger;
+use Haybea\Trashcan\Services\ExportService;
+use Haybea\Trashcan\Services\ModelDiscoveryService;
+use Haybea\Trashcan\Services\StatisticsService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Haybea\Trashcan\Console\Commands\InstallCommand;
-use Haybea\Trashcan\Http\Middleware\Authorize;
-use Haybea\Trashcan\Services\{ActivityLogger, ExportService, ModelDiscoveryService, StatisticsService};
 
 class TrashcanServiceProvider extends ServiceProvider
 {

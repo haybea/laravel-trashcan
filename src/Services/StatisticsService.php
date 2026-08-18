@@ -2,15 +2,13 @@
 
 namespace Haybea\Trashcan\Services;
 
-use Illuminate\Support\Carbon;
+use Haybea\Trashcan\Models\TrashcanActivity;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Haybea\Trashcan\Models\TrashcanActivity;
 
 class StatisticsService
 {
-    public function __construct(protected ModelDiscoveryService $discoveryService)
-    {}
+    public function __construct(protected ModelDiscoveryService $discoveryService) {}
 
     /**
      * Get complete dashboard statistics.
@@ -53,7 +51,7 @@ class StatisticsService
      */
     protected function getRecentActivityStats(): array
     {
-        if (!config('trashcan.logging.database')) {
+        if (! config('trashcan.logging.database')) {
             return [];
         }
 
@@ -77,7 +75,7 @@ class StatisticsService
      */
     public function getActivityChartData(): array
     {
-        if (!config('trashcan.logging.database')) {
+        if (! config('trashcan.logging.database')) {
             return ['labels' => [], 'restored' => [], 'deleted' => []];
         }
 
@@ -115,7 +113,7 @@ class StatisticsService
      */
     protected function getTopDeleters(int $limit = 5): Collection
     {
-        if (!config('trashcan.logging.database')) {
+        if (! config('trashcan.logging.database')) {
             return collect();
         }
 

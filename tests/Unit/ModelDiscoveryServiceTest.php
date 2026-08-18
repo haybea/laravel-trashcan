@@ -4,6 +4,7 @@ namespace Haybea\Trashcan\Tests\Unit;
 
 use Haybea\Trashcan\Services\ModelDiscoveryService;
 use Haybea\Trashcan\Tests\Fixtures\Models\Comment;
+use Haybea\Trashcan\Tests\Fixtures\Models\PlainModel;
 use Haybea\Trashcan\Tests\Fixtures\Models\Post;
 use Haybea\Trashcan\Tests\TestCase;
 
@@ -52,11 +53,11 @@ class ModelDiscoveryServiceTest extends TestCase
 
     public function test_ignores_models_without_soft_deletes_when_whitelisted(): void
     {
-        config(['trashcan.only' => [\Haybea\Trashcan\Tests\Fixtures\Models\PlainModel::class]]);
+        config(['trashcan.only' => [PlainModel::class]]);
 
         $models = $this->service()->getModels();
 
-        $this->assertFalse($models->has(\Haybea\Trashcan\Tests\Fixtures\Models\PlainModel::class));
+        $this->assertFalse($models->has(PlainModel::class));
     }
 
     public function test_discovers_models_via_filesystem_scan(): void

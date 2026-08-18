@@ -2,12 +2,19 @@
 
 namespace Haybea\Trashcan\Http\Controllers;
 
+use Haybea\Trashcan\Events\BulkForceDeleted;
+use Haybea\Trashcan\Events\BulkRestored;
+use Haybea\Trashcan\Events\ItemForceDeleted;
+use Haybea\Trashcan\Events\ItemRestored;
+use Haybea\Trashcan\Events\TrashEmptied;
+use Haybea\Trashcan\Models\TrashcanActivity;
+use Haybea\Trashcan\Services\ActivityLogger;
+use Haybea\Trashcan\Services\ExportService;
+use Haybea\Trashcan\Services\ModelDiscoveryService;
+use Haybea\Trashcan\Services\StatisticsService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
-use Haybea\Trashcan\Events\{ItemRestored, ItemForceDeleted, BulkRestored, BulkForceDeleted, TrashEmptied};
-use Haybea\Trashcan\Models\TrashcanActivity;
-use Haybea\Trashcan\Services\{ActivityLogger, ExportService, ModelDiscoveryService, StatisticsService};
 
 class TrashcanController extends Controller
 {
@@ -34,7 +41,7 @@ class TrashcanController extends Controller
         $models = $this->discovery->getModels();
         $modelClass = base64_decode($model);
 
-        if (!$models->has($modelClass)) {
+        if (! $models->has($modelClass)) {
             abort(404);
         }
 
@@ -45,7 +52,7 @@ class TrashcanController extends Controller
 
         if ($search = $request->get('search')) {
             $cols = config("trashcan.searchable.{$modelClass}")
-                ?? array_filter($activeModel['columns'], fn ($c) => !in_array($c, ['id', 'deleted_at']));
+                ?? array_filter($activeModel['columns'], fn ($c) => ! in_array($c, ['id', 'deleted_at']));
             $query->where(fn ($q) => collect($cols)->each(fn ($c) => $q->orWhere($c, 'like', "%{$search}%")));
         }
 
@@ -84,7 +91,7 @@ class TrashcanController extends Controller
         $this->logger->logRestored($modelClass, $id);
         event(new ItemRestored($modelClass, $id));
 
-        return back()->with('success', class_basename($modelClass) . ' restored successfully.');
+        return back()->with('success', class_basename($modelClass).' restored successfully.');
     }
 
     public function forceDelete(Request $request, string $model, string $id)
@@ -99,7 +106,7 @@ class TrashcanController extends Controller
         $this->logger->logForceDeleted($modelClass, $id);
         event(new ItemForceDeleted($modelClass, $id));
 
-        return back()->with('success', class_basename($modelClass) . ' permanently deleted.');
+        return back()->with('success', class_basename($modelClass).' permanently deleted.');
     }
 
     public function bulkRestore(Request $request, string $model)
@@ -110,7 +117,7 @@ class TrashcanController extends Controller
 
         $ids = $this->parseIds($request->input('ids'));
         $items = $modelClass::onlyTrashed()->whereIn('id', $ids)->get();
-        
+
         $relations = $this->resolveRelations($modelClass);
 
         foreach ($items as $item) {
@@ -126,7 +133,7 @@ class TrashcanController extends Controller
         $this->logger->logBulkRestored($modelClass, $ids);
         event(new BulkRestored($modelClass, $ids));
 
-        return back()->with('success', count($ids) . ' items restored.');
+        return back()->with('success', count($ids).' items restored.');
     }
 
     public function bulkForceDelete(Request $request, string $model)
@@ -142,7 +149,7 @@ class TrashcanController extends Controller
         $this->logger->logBulkDeleted($modelClass, $ids);
         event(new BulkForceDeleted($modelClass, $ids));
 
-        return back()->with('success', count($ids) . ' items permanently deleted.');
+        return back()->with('success', count($ids).' items permanently deleted.');
     }
 
     public function emptyTrash(Request $request, string $model)
@@ -175,7 +182,7 @@ class TrashcanController extends Controller
 
     public function activity()
     {
-        if (!config('trashcan.logging.database')) {
+        if (! config('trashcan.logging.database')) {
             abort(404);
         }
 
@@ -187,7 +194,7 @@ class TrashcanController extends Controller
 
     public function statistics()
     {
-        if (!config('trashcan.statistics.enabled')) {
+        if (! config('trashcan.statistics.enabled')) {
             abort(404);
         }
 
@@ -204,7 +211,7 @@ class TrashcanController extends Controller
         $this->authorizeModel($modelClass, 'view');
 
         $ids = $this->parseIds($request->input('ids', $request->input('id')));
-        
+
         if (empty($ids)) {
             return response()->json(['affected_children' => []]);
         }
@@ -217,7 +224,7 @@ class TrashcanController extends Controller
     protected function authorizeModel(string $modelClass, string $action): void
     {
         $perms = config("trashcan.model_permissions.{$modelClass}");
-        if ($perms && isset($perms[$action]) && !Gate::allows($perms[$action])) {
+        if ($perms && isset($perms[$action]) && ! Gate::allows($perms[$action])) {
             abort(403);
         }
     }
@@ -227,12 +234,13 @@ class TrashcanController extends Controller
         if (is_string($ids)) {
             $ids = json_decode($ids, true) ?? [];
         }
+
         return array_map('intval', (array) $ids);
     }
 
     protected function validateModel(string $modelClass): void
     {
-        if (!$this->discovery->getModels()->has($modelClass)) {
+        if (! $this->discovery->getModels()->has($modelClass)) {
             abort(404);
         }
     }
@@ -255,7 +263,7 @@ class TrashcanController extends Controller
 
         foreach ($items as $item) {
             foreach ($relations as $relationName) {
-                if (!method_exists($item, $relationName)) {
+                if (! method_exists($item, $relationName)) {
                     continue;
                 }
 
@@ -264,7 +272,7 @@ class TrashcanController extends Controller
                     $relatedModel = $relation->getRelated();
 
                     // Check if the related model uses SoftDeletes
-                    if (!in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($relatedModel))) {
+                    if (! in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($relatedModel))) {
                         continue;
                     }
 
@@ -272,9 +280,9 @@ class TrashcanController extends Controller
 
                     if ($trashedCount > 0) {
                         $modelName = class_basename($relatedModel);
-                        $key = $modelName . ':' . $relationName;
+                        $key = $modelName.':'.$relationName;
 
-                        if (!isset($affectedChildren[$key])) {
+                        if (! isset($affectedChildren[$key])) {
                             $affectedChildren[$key] = [
                                 'model' => $modelName,
                                 'relation' => $relationName,
@@ -313,7 +321,7 @@ class TrashcanController extends Controller
      */
     protected function guardAgainstRelatedRecords(string $modelClass, array $ids): void
     {
-        if (!in_array($modelClass, config('trashcan.block_delete_with_children', []))) {
+        if (! in_array($modelClass, config('trashcan.block_delete_with_children', []))) {
             return;
         }
 
@@ -327,7 +335,7 @@ class TrashcanController extends Controller
 
         foreach ($items as $item) {
             foreach ($relations as $relationName) {
-                if (!method_exists($item, $relationName)) {
+                if (! method_exists($item, $relationName)) {
                     continue;
                 }
 
@@ -390,5 +398,4 @@ class TrashcanController extends Controller
 
         return $relations;
     }
-
 }

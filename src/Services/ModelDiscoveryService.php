@@ -25,7 +25,7 @@ class ModelDiscoveryService
 
     protected function discoveredModels(): Collection
     {
-        if (!config('trashcan.cache.enabled', true)) {
+        if (! config('trashcan.cache.enabled', true)) {
             return $this->buildModelList();
         }
 
@@ -40,10 +40,10 @@ class ModelDiscoveryService
     {
         $only = config('trashcan.only', []);
 
-        if (!empty($only)) {
+        if (! empty($only)) {
             return collect($only)
                 ->filter(fn ($model) => $this->usesSoftDeletes($model))
-                ->filter(fn ($model) => !$this->isExcluded($model))
+                ->filter(fn ($model) => ! $this->isExcluded($model))
                 ->mapWithKeys(fn ($model) => [$model => $this->getStaticModelInfo($model)]);
         }
 
@@ -54,7 +54,7 @@ class ModelDiscoveryService
     {
         $modelsPath = app_path(config('trashcan.models_path', 'Models'));
 
-        if (!File::isDirectory($modelsPath)) {
+        if (! File::isDirectory($modelsPath)) {
             return collect();
         }
 
@@ -65,17 +65,18 @@ class ModelDiscoveryService
                     ['\\', ''],
                     $file->getRelativePathname()
                 );
-                return 'App\\' . config('trashcan.models_path', 'Models') . '\\' . $relativePath;
+
+                return 'App\\'.config('trashcan.models_path', 'Models').'\\'.$relativePath;
             })
             ->filter(fn ($class) => class_exists($class))
             ->filter(fn ($class) => $this->usesSoftDeletes($class))
-            ->filter(fn ($class) => !$this->isExcluded($class))
+            ->filter(fn ($class) => ! $this->isExcluded($class))
             ->mapWithKeys(fn ($model) => [$model => $this->getStaticModelInfo($model)]);
     }
 
     protected function usesSoftDeletes(string $class): bool
     {
-        if (!class_exists($class)) {
+        if (! class_exists($class)) {
             return false;
         }
 

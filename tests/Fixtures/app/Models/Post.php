@@ -11,6 +11,7 @@ class Post extends Model
     use SoftDeletes;
 
     protected $table = 'posts';
+
     protected $fillable = ['title', 'body'];
 
     public function comments(): HasMany
