@@ -1,0 +1,73 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            laravel: '^10.0'
+            testbench: '^8.0'
+            stability: prefer-lowest
+          - php: '8.1'
+            laravel: '^10.0'
+            testbench: '^8.0'
+            stability: prefer-stable
+          - php: '8.2'
+            laravel: '^10.0'
+            testbench: '^8.0'
+            stability: prefer-stable
+          - php: '8.2'
+            laravel: '^11.0'
+            testbench: '^9.0'
+            stability: prefer-stable
+          - php: '8.3'
+            laravel: '^10.0'
+            testbench: '^8.0'
+            stability: prefer-stable
+          - php: '8.3'
+            laravel: '^11.0'
+            testbench: '^9.0'
+            stability: prefer-stable
+          - php: '8.3'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            stability: prefer-stable
+
+    name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }} (${{ matrix.stability }})
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Require matching framework versions
+        run: |
+          composer require "illuminate/support:${{ matrix.laravel }}" --no-update
+          composer require "orchestra/testbench:${{ matrix.testbench }}" --no-update --dev
+
+      - name: Install dependencies
+        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Run tests
+        run: vendor/bin/phpunit
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - run: composer install --prefer-dist --no-interaction
+      - run: vendor/bin/pint --test

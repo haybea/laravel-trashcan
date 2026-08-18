@@ -5,6 +5,7 @@ yarn-error.log
 
 composer.lock
 .phpunit.result.cache
+.phpunit.cache/
 .idea/
 .idea/*
 .vscode/

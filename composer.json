@@ -11,14 +11,18 @@
         "illuminate/support": "^10.0|^11.0|^12.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^8.0|^9.0",
-        "phpunit/phpunit": "^10.0"
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.0",
+        "laravel/pint": "^1.0"
     },
     "autoload": {
         "psr-4": {"Haybea\\Trashcan\\": "src/"}
     },
     "autoload-dev": {
-        "psr-4": {"Haybea\\Trashcan\\Tests\\": "tests/"}
+        "psr-4": {
+            "Haybea\\Trashcan\\Tests\\": "tests/",
+            "App\\Models\\": "tests/Fixtures/app/Models/"
+        }
     },
     "extra": {
         "laravel": {
