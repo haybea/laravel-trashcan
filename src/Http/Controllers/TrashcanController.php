@@ -355,7 +355,6 @@ class TrashcanController extends Controller
     {
         $relations = [];
         $reflection = new \ReflectionClass($modelClass);
-        $instance = new $modelClass;
 
         foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
             // Skip non-relation methods
@@ -364,38 +363,28 @@ class TrashcanController extends Controller
             }
 
             $methodName = $method->getName();
-            
+
             // Skip common non-relation methods
             if (in_array($methodName, ['getTable', 'getConnection', 'getKeyName', 'getForeignKey'])) {
                 continue;
             }
 
-            try {
-                $returnType = $method->getReturnType();
-                
-                // Check if method returns a relation type
-                if ($returnType && (
-                    str_contains($returnType->getName(), 'Relation') ||
-                    str_contains($returnType->getName(), 'HasMany') ||
-                    str_contains($returnType->getName(), 'BelongsTo') ||
-                    str_contains($returnType->getName(), 'HasOne') ||
-                    str_contains($returnType->getName(), 'BelongsToMany') ||
-                    str_contains($returnType->getName(), 'MorphMany') ||
-                    str_contains($returnType->getName(), 'MorphToMany')
-                )) {
-                    $relations[] = $methodName;
-                    continue;
-                }
+            // Only classify via the declared return type — never invoke the
+            // method itself. Calling arbitrary zero-arg methods (e.g. the
+            // model's own restore()/delete()/save()) can mutate state and
+            // fire real Eloquent events just from inspecting the model.
+            $returnType = $method->getReturnType();
 
-                // Try calling the method to see if it returns a relation
-                $result = $instance->{$methodName}();
-                
-                if ($result instanceof \Illuminate\Database\Eloquent\Relations\Relation) {
-                    $relations[] = $methodName;
-                }
-            } catch (\Exception $e) {
-                // Skip methods that throw errors
-                continue;
+            if ($returnType && (
+                str_contains($returnType->getName(), 'Relation') ||
+                str_contains($returnType->getName(), 'HasMany') ||
+                str_contains($returnType->getName(), 'BelongsTo') ||
+                str_contains($returnType->getName(), 'HasOne') ||
+                str_contains($returnType->getName(), 'BelongsToMany') ||
+                str_contains($returnType->getName(), 'MorphMany') ||
+                str_contains($returnType->getName(), 'MorphToMany')
+            )) {
+                $relations[] = $methodName;
             }
         }
 
