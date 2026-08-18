@@ -78,7 +78,7 @@ class TrashcanController extends Controller
         $item = $modelClass::onlyTrashed()->findOrFail($id);
         $item->restore();
 
-        foreach (config("trashcan.restore_with_relations.{$modelClass}", []) as $rel) {
+        foreach ($this->resolveRelations($modelClass) as $rel) {
             if (method_exists($item, $rel)) {
                 $item->{$rel}()->onlyTrashed()->restore();
             }
@@ -95,6 +95,7 @@ class TrashcanController extends Controller
         $modelClass = base64_decode($model);
         $this->validateModel($modelClass);
         $this->authorizeModel($modelClass, 'delete');
+        $this->guardAgainstRelatedRecords($modelClass, [$id]);
 
         $modelClass::onlyTrashed()->findOrFail($id)->forceDelete();
 
@@ -113,10 +114,12 @@ class TrashcanController extends Controller
         $ids = $this->parseIds($request->input('ids'));
         $items = $modelClass::onlyTrashed()->whereIn('id', $ids)->get();
         
+        $relations = $this->resolveRelations($modelClass);
+
         foreach ($items as $item) {
             $item->restore();
-            
-            foreach (config("trashcan.restore_with_relations.{$modelClass}", []) as $rel) {
+
+            foreach ($relations as $rel) {
                 if (method_exists($item, $rel)) {
                     $item->{$rel}()->onlyTrashed()->restore();
                 }
@@ -136,6 +139,7 @@ class TrashcanController extends Controller
         $this->authorizeModel($modelClass, 'delete');
 
         $ids = $this->parseIds($request->input('ids'));
+        $this->guardAgainstRelatedRecords($modelClass, $ids);
         $modelClass::onlyTrashed()->whereIn('id', $ids)->get()->each->forceDelete();
 
         $this->logger->logBulkDeleted($modelClass, $ids);
@@ -163,6 +167,7 @@ class TrashcanController extends Controller
     {
         $modelClass = base64_decode($model);
         $this->validateModel($modelClass);
+        $this->authorizeModel($modelClass, 'view');
 
         return $this->exportService->export(
             $modelClass,
@@ -243,13 +248,7 @@ class TrashcanController extends Controller
     protected function getAffectedChildRecords(string $modelClass, array $ids): array
     {
         $affectedChildren = [];
-        
-        // Get relations from config or auto-detect
-        $relations = config("trashcan.restore_with_relations.{$modelClass}", []);
-        
-        if (empty($relations)) {
-            $relations = $this->autoDetectRelations($modelClass);
-        }
+        $relations = $this->resolveRelations($modelClass);
 
         if (empty($relations)) {
             return [];
@@ -258,12 +257,6 @@ class TrashcanController extends Controller
         $items = $modelClass::onlyTrashed()->whereIn('id', $ids)->get();
 
         foreach ($items as $item) {
-            // Temporarily restore to access relations
-            $wasTrashed = $item->trashed();
-            if ($wasTrashed) {
-                $item->restore();
-            }
-
             foreach ($relations as $relationName) {
                 if (!method_exists($item, $relationName)) {
                     continue;
@@ -272,18 +265,18 @@ class TrashcanController extends Controller
                 try {
                     $relation = $item->{$relationName}();
                     $relatedModel = $relation->getRelated();
-                    
+
                     // Check if the related model uses SoftDeletes
                     if (!in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($relatedModel))) {
                         continue;
                     }
 
                     $trashedCount = $relation->onlyTrashed()->count();
-                    
+
                     if ($trashedCount > 0) {
                         $modelName = class_basename($relatedModel);
                         $key = $modelName . ':' . $relationName;
-                        
+
                         if (!isset($affectedChildren[$key])) {
                             $affectedChildren[$key] = [
                                 'model' => $modelName,
@@ -291,7 +284,7 @@ class TrashcanController extends Controller
                                 'count' => 0,
                             ];
                         }
-                        
+
                         $affectedChildren[$key]['count'] += $trashedCount;
                     }
                 } catch (\Exception $e) {
@@ -299,14 +292,66 @@ class TrashcanController extends Controller
                     continue;
                 }
             }
-
-            // Re-trash if it was trashed
-            if ($wasTrashed) {
-                $item->delete();
-            }
         }
 
         return array_values($affectedChildren);
+    }
+
+    /**
+     * Resolve which relations to consider for a model: explicit config wins,
+     * falling back to reflection-based auto-detection so cascade-restore and
+     * the affected-children warning always agree on the same relation set.
+     */
+    protected function resolveRelations(string $modelClass): array
+    {
+        $relations = config("trashcan.restore_with_relations.{$modelClass}", []);
+
+        return empty($relations) ? $this->autoDetectRelations($modelClass) : $relations;
+    }
+
+    /**
+     * Abort the request if the model is configured to block permanent deletion
+     * while related records still exist. Opt-in via `block_delete_with_children`
+     * config, so existing installs see no behavior change unless configured.
+     */
+    protected function guardAgainstRelatedRecords(string $modelClass, array $ids): void
+    {
+        if (!in_array($modelClass, config('trashcan.block_delete_with_children', []))) {
+            return;
+        }
+
+        $relations = $this->resolveRelations($modelClass);
+
+        if (empty($relations)) {
+            return;
+        }
+
+        $items = $modelClass::onlyTrashed()->whereIn('id', $ids)->get();
+
+        foreach ($items as $item) {
+            foreach ($relations as $relationName) {
+                if (!method_exists($item, $relationName)) {
+                    continue;
+                }
+
+                $count = 0;
+
+                try {
+                    $relation = $item->{$relationName}();
+                    $relatedModel = $relation->getRelated();
+
+                    $count = in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($relatedModel))
+                        ? $relation->withTrashed()->count()
+                        : $relation->count();
+                } catch (\Exception $e) {
+                    continue;
+                }
+
+                if ($count > 0) {
+                    abort(422, 'Cannot permanently delete: related records exist.');
+                }
+            }
+        }
     }
 
 //    protected function getOrphanedChildrenForItems(string $modelClass, array $items): array

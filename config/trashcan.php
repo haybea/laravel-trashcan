@@ -90,7 +90,7 @@ return [
     | Authorization Gate
     |--------------------------------------------------------------------------
     */
-    'gate' => 'viewTrashCan',
+    'gate' => 'viewTrashcan',
 
     /*
     |--------------------------------------------------------------------------
@@ -144,5 +144,16 @@ return [
     */
     'restore_with_relations' => [
         // App\Models\Post::class => ['comments', 'tags'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Block Delete With Children
+    |--------------------------------------------------------------------------
+    | Models listed here cannot be permanently deleted (single or bulk) while
+    | related records still exist on their configured/auto-detected relations.
+    */
+    'block_delete_with_children' => [
+        // App\Models\Post::class,
     ],
 ];
