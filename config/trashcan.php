@@ -94,6 +94,33 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Auth Guard
+    |--------------------------------------------------------------------------
+    | Guard used to resolve the current user for the gate check and activity
+    | logging. Leave null to use the application's default guard.
+    */
+    'guard' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | User Model
+    |--------------------------------------------------------------------------
+    | Model used for the activity log's user relation. Leave null to fall
+    | back to auth.providers.users.model, then App\Models\User.
+    */
+    'user_model' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | User Name Attribute
+    |--------------------------------------------------------------------------
+    | Attribute read off the user model when recording who performed an
+    | action in the activity log.
+    */
+    'user_name_attribute' => 'name',
+
+    /*
+    |--------------------------------------------------------------------------
     | Per-Model Permissions
     |--------------------------------------------------------------------------
     */
@@ -155,5 +182,17 @@ return [
     */
     'block_delete_with_children' => [
         // App\Models\Post::class,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Model Discovery Cache
+    |--------------------------------------------------------------------------
+    | Caches the (rarely-changing) model class list and display columns.
+    | Trashed counts are always computed live regardless of this setting.
+    */
+    'cache' => [
+        'enabled' => true,
+        'ttl' => 300,
     ],
 ];

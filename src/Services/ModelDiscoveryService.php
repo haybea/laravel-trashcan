@@ -4,12 +4,39 @@ namespace Haybea\Trashcan\Services;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
-use ReflectionClass;
 
 class ModelDiscoveryService
 {
+    /**
+     * Get discovered models with a live trashed_count. The (rarely-changing)
+     * discovery step below is cached, but trashed_count is always computed
+     * fresh so trash counts never go stale between cache refreshes.
+     */
     public function getModels(): Collection
+    {
+        return $this->discoveredModels()->map(function (array $info) {
+            $info['trashed_count'] = $info['class']::onlyTrashed()->count();
+
+            return $info;
+        });
+    }
+
+    protected function discoveredModels(): Collection
+    {
+        if (!config('trashcan.cache.enabled', true)) {
+            return $this->buildModelList();
+        }
+
+        return Cache::remember(
+            'trashcan.discovered_models',
+            config('trashcan.cache.ttl', 300),
+            fn () => $this->buildModelList()
+        );
+    }
+
+    protected function buildModelList(): Collection
     {
         $only = config('trashcan.only', []);
 
@@ -17,7 +44,7 @@ class ModelDiscoveryService
             return collect($only)
                 ->filter(fn ($model) => $this->usesSoftDeletes($model))
                 ->filter(fn ($model) => !$this->isExcluded($model))
-                ->mapWithKeys(fn ($model) => [$model => $this->getModelInfo($model)]);
+                ->mapWithKeys(fn ($model) => [$model => $this->getStaticModelInfo($model)]);
         }
 
         return $this->discoverModels();
@@ -43,7 +70,7 @@ class ModelDiscoveryService
             ->filter(fn ($class) => class_exists($class))
             ->filter(fn ($class) => $this->usesSoftDeletes($class))
             ->filter(fn ($class) => !$this->isExcluded($class))
-            ->mapWithKeys(fn ($model) => [$model => $this->getModelInfo($model)]);
+            ->mapWithKeys(fn ($model) => [$model => $this->getStaticModelInfo($model)]);
     }
 
     protected function usesSoftDeletes(string $class): bool
@@ -60,16 +87,14 @@ class ModelDiscoveryService
         return in_array($class, config('trashcan.exclude', []));
     }
 
-    protected function getModelInfo(string $class): array
+    protected function getStaticModelInfo(string $class): array
     {
-        $reflection = new ReflectionClass($class);
         $instance = new $class;
 
         return [
             'class' => $class,
             'name' => class_basename($class),
             'table' => $instance->getTable(),
-            'trashed_count' => $class::onlyTrashed()->count(),
             'columns' => $this->getDisplayColumns($class, $instance),
         ];
     }

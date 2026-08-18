@@ -47,6 +47,15 @@ class TrashcanControllerTest extends TestCase
             ->assertViewHas('models');
     }
 
+    public function test_statistics_page_renders(): void
+    {
+        Post::create(['title' => 'Trashed'])->delete();
+
+        $this->get(route('trashcan.statistics'))
+            ->assertOk()
+            ->assertSee('Statistics');
+    }
+
     public function test_show_lists_trashed_items_for_known_model(): void
     {
         $post = Post::create(['title' => 'Trashed post']);
